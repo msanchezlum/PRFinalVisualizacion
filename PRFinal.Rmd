@@ -1,0 +1,106 @@
+---
+title: "Practica_Final_Visualizacion"
+author: "María Inmaculada Sánchez Lumbreras"
+date: "2025-01-16"
+output: html_document
+---
+
+```{r message= FALSE, warning=FALSE}
+#librerías que podemos necesitar a lo largo de la práctica
+library("GGally")
+library("dplyr")
+library("MASS")
+library("FactoMineR")
+library('amap')
+library("tidyverse")
+library("class")
+library("gmodels")
+library("caret")
+library("dbscan")
+```
+
+
+```{r}
+data <- read.csv("globalterrorismdb_0617dist.csv")
+```
+
+```{r}
+str(data)
+```
+
+Nos quedamos con las variables de nuestro interés:
+
+```{r}
+df <- data[, c("eventid", "iyear", "imonth", "iday", "extended", "country", "country_txt", "region", "region_txt", "provstate", "city", "latitude", "longitude", "specificity", "vicinity", "crit1", "crit2", "crit3", "doubtterr", "multiple", "success", "suicide", "attacktype1", "attacktype1_txt", "targtype1", "targtype1_txt", "targsubtype1", "targsubtype1_txt", "corp1", "target1", "natlty1", "natlty1_txt", "gname", "guncertain1", "individual", "weaptype1", "weaptype1_txt", "nkill", "nwound", "property", "ishostkid", "dbsource", "INT_LOG", "INT_IDEO", "INT_MISC", "INT_ANY")]
+```
+
+Eliminamos los valores ausentes:
+
+```{r}
+df <- na.omit(df)
+```
+
+Creamos la variable década, para poder hacer una de las visualizaciones: 
+
+```{r}
+df$decada <- floor(df$iyear / 10) *10
+```
+
+# Selección para hacer la visualización del mapa
+
+```{r}
+ataques_por_decada <- df %>%
+  group_by(country_txt, decada) %>%
+  summarise(total_attacks = n()) %>%
+  pivot_wider(names_from = "decada", values_from = "total_attacks", values_fill = list(total_attacks = 0))
+
+```
+```{r}
+ataques_por_decada
+```
+
+
+```{r}
+write.csv(ataques_por_decada, file="ataques_por_decada.csv")
+```
+
+
+# Comparativa de tipo de ataque por región
+
+```{r}
+region <- df %>%
+  group_by(attacktype1_txt, region_txt) %>%
+  summarise(count = n()) %>%
+  pivot_wider(names_from = attacktype1_txt, values_from = count, values_fill = list(count = 0))
+
+```
+```{r}
+region
+```
+
+```{r}
+write.csv(region, file=  "region.csv")
+```
+
+
+# Tipo de víctimas por ataque
+
+```{r}
+ataque_muertos <- df %>%
+  group_by(attacktype1_txt) %>%
+  summarise(
+    #ataques = n(),                          # Número total de ataques
+    muertos = sum(nkill, na.rm = TRUE)/n(),       # Total de muertos
+    heridos = sum(nwound, na.rm = TRUE)/n()    # Total de heridos
+  )
+```
+
+```{r}
+ataque_muertos
+```
+
+```{r}
+write.csv(ataque_muertos, file=  "ataque_muertos.csv")
+```
+
+
